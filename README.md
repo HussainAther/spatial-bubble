@@ -66,7 +66,8 @@ The long-term design is documented in:
 - [scientific data model](docs/DATA_MODEL.md);
 - [verification, validation, and numerical policy](docs/VALIDATION.md);
 - [phenomenon plugin architecture](docs/PLUGINS.md);
-- [staged research roadmap](docs/ROADMAP.md).
+- [staged research roadmap](docs/ROADMAP.md);
+- [v0.2.0 equilibrium-surface proposal](docs/proposals/v0.2.0-equilibrium-surfaces.md).
 
 ## Status
 
