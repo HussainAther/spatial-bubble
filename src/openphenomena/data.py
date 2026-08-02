@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from types import MappingProxyType
 from typing import Any
 
@@ -17,6 +17,7 @@ import numpy.typing as npt
 
 FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
+OrientationArray = npt.NDArray[np.int8]
 NumericArray = npt.NDArray[np.generic]
 Dimension = tuple[float, float, float, float, float, float, float]
 
@@ -25,8 +26,17 @@ class FieldAssociation(StrEnum):
     """Topological location at which the leading field axis is sampled."""
 
     VERTEX = "vertex"
+    EDGE = "edge"
     FACE = "face"
     GLOBAL = "global"
+
+
+class BoundaryOrientation(IntEnum):
+    """Orientation relative to the canonical orientation of an entity."""
+
+    REVERSED = -1
+    UNORIENTED = 0
+    ALIGNED = 1
 
 
 class Fidelity(StrEnum):
@@ -166,6 +176,73 @@ class Field:
 
 
 @dataclass(frozen=True, slots=True)
+class BoundarySemantics:
+    """Extensible physical meaning assigned to a boundary entity set."""
+
+    semantic_id: str
+    description: str
+    parameters: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.semantic_id or "." not in self.semantic_id:
+            raise ValueError("boundary semantic ID must be namespaced")
+        if not self.description:
+            raise ValueError("boundary semantics require a description")
+        object.__setattr__(self, "parameters", _freeze_mapping(self.parameters))
+
+
+@dataclass(frozen=True, slots=True)
+class EntitySet:
+    """Immutable named selection of topological entities.
+
+    ``entity_indices`` address the domain's canonical vertex, edge, or face
+    table. Edge orientation is relative to the lexicographically ordered
+    canonical edge. Face orientation is relative to stored face winding.
+    """
+
+    entity_set_id: str
+    name: str
+    owner_domain_id: str
+    association: FieldAssociation
+    entity_indices: IntArray
+    orientations: OrientationArray
+    coordinate_frame: str
+    provenance: tuple[Provenance, ...]
+    boundary_semantics: BoundarySemantics | None = None
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.entity_set_id or "." not in self.entity_set_id:
+            raise ValueError("entity-set ID must be namespaced")
+        if not self.name or not self.owner_domain_id or not self.coordinate_frame:
+            raise ValueError(
+                "entity-set name, owner domain, and coordinate frame are required"
+            )
+        if self.association is FieldAssociation.GLOBAL:
+            raise ValueError("entity sets cannot have global association")
+        indices = np.array(self.entity_indices, dtype=np.int64, copy=True)
+        orientations = np.array(self.orientations, dtype=np.int8, copy=True)
+        if indices.ndim != 1 or orientations.shape != indices.shape:
+            raise ValueError("entity indices and orientations must be equal 1-D arrays")
+        if len(np.unique(indices)) != len(indices):
+            raise ValueError("entity-set indices must be unique")
+        if np.any(indices < 0):
+            raise ValueError("entity-set indices must be nonnegative")
+        if np.any(~np.isin(orientations, (-1, 0, 1))):
+            raise ValueError("entity orientations must be -1, 0, or 1")
+        if self.association is FieldAssociation.VERTEX and np.any(orientations != 0):
+            raise ValueError("vertex entity sets must be unoriented")
+        if not self.provenance:
+            raise ValueError("every entity set requires provenance")
+        indices.flags.writeable = False
+        orientations.flags.writeable = False
+        object.__setattr__(self, "entity_indices", indices)
+        object.__setattr__(self, "orientations", orientations)
+        object.__setattr__(self, "provenance", tuple(self.provenance))
+        object.__setattr__(self, "metadata", _freeze_mapping(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
 class Domain:
     """Immutable triangular surface domain and its scientific fields."""
 
@@ -175,7 +252,9 @@ class Domain:
     positions_m: FloatArray
     faces: IntArray
     fields: Mapping[str, Field]
+    entity_sets: Mapping[str, EntitySet] = field(default_factory=dict)
     metadata: Mapping[str, object] = field(default_factory=dict)
+    edges: IntArray = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         positions = np.array(self.positions_m, dtype=np.float64, copy=True)
@@ -188,12 +267,14 @@ class Domain:
             raise ValueError("positions_m must be finite")
         if faces.size and (np.min(faces) < 0 or np.max(faces) >= len(positions)):
             raise ValueError("faces contain an out-of-range vertex index")
+        edges = _canonical_edges(faces)
         frozen_fields = dict(self.fields)
         for semantic_id, sampled_field in frozen_fields.items():
             if semantic_id != sampled_field.descriptor.semantic_id:
                 raise ValueError("field mapping key must equal descriptor semantic_id")
             expected = {
                 FieldAssociation.VERTEX: len(positions),
+                FieldAssociation.EDGE: len(edges),
                 FieldAssociation.FACE: len(faces),
             }.get(sampled_field.descriptor.association)
             if expected is not None and (
@@ -203,11 +284,32 @@ class Domain:
                 raise ValueError(
                     f"field {semantic_id!r} has incompatible association cardinality"
                 )
+        frozen_entity_sets = dict(self.entity_sets)
+        cardinalities = {
+            FieldAssociation.VERTEX: len(positions),
+            FieldAssociation.EDGE: len(edges),
+            FieldAssociation.FACE: len(faces),
+        }
+        for entity_set_id, entity_set in frozen_entity_sets.items():
+            if entity_set_id != entity_set.entity_set_id:
+                raise ValueError("entity-set mapping key must equal the entity-set ID")
+            if entity_set.owner_domain_id != self.domain_id:
+                raise ValueError("entity-set owner must equal the containing domain ID")
+            cardinality = cardinalities[entity_set.association]
+            if entity_set.entity_indices.size and (
+                int(np.max(entity_set.entity_indices)) >= cardinality
+            ):
+                raise ValueError(
+                    f"entity set {entity_set_id!r} contains an out-of-range index"
+                )
         positions.flags.writeable = False
         faces.flags.writeable = False
+        edges.flags.writeable = False
         object.__setattr__(self, "positions_m", positions)
         object.__setattr__(self, "faces", faces)
+        object.__setattr__(self, "edges", edges)
         object.__setattr__(self, "fields", MappingProxyType(frozen_fields))
+        object.__setattr__(self, "entity_sets", MappingProxyType(frozen_entity_sets))
         object.__setattr__(self, "metadata", _freeze_mapping(self.metadata))
 
 
@@ -311,3 +413,12 @@ def _freeze_value(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return tuple(_freeze_value(item) for item in value)
     return value
+
+
+def _canonical_edges(faces: IntArray) -> IntArray:
+    if len(faces) == 0:
+        return np.empty((0, 2), dtype=np.int64)
+    directed = np.concatenate(
+        (faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]), axis=0
+    )
+    return np.unique(np.sort(directed, axis=1), axis=0)

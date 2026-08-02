@@ -3,7 +3,10 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from openphenomena.data import (
+    BoundaryOrientation,
+    BoundarySemantics,
     Domain,
+    EntitySet,
     EvidenceRecord,
     Fidelity,
     Field,
@@ -24,7 +27,10 @@ except PackageNotFoundError:  # pragma: no cover - source tree without installat
     __version__ = "0+unknown"
 
 __all__ = [
+    "BoundaryOrientation",
+    "BoundarySemantics",
     "Domain",
+    "EntitySet",
     "EvidenceRecord",
     "Fidelity",
     "Field",

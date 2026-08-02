@@ -13,7 +13,9 @@ from typing import Any
 import numpy as np
 
 from openphenomena.data import (
+    BoundarySemantics,
     Domain,
+    EntitySet,
     EvidenceRecord,
     Fidelity,
     Field,
@@ -28,7 +30,8 @@ from openphenomena.data import (
     ValidationStatus,
 )
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0.0", SCHEMA_VERSION})
 
 
 def write_run_bundle(study: Study, run: Run, directory: Path) -> tuple[Path, Path]:
@@ -58,6 +61,24 @@ def write_run_bundle(study: Study, run: Run, directory: Path) -> tuple[Path, Pat
                         ],
                     }
                 )
+            entity_set_records: list[dict[str, object]] = []
+            for entity_set_index, entity_set_id in enumerate(
+                sorted(domain.entity_sets)
+            ):
+                entity_set = domain.entity_sets[entity_set_id]
+                indices_key = f"{prefix}_entity_set_{entity_set_index}_indices"
+                orientations_key = (
+                    f"{prefix}_entity_set_{entity_set_index}_orientations"
+                )
+                arrays[indices_key] = entity_set.entity_indices
+                arrays[orientations_key] = entity_set.orientations
+                entity_set_records.append(
+                    _entity_set_to_record(
+                        entity_set,
+                        indices_key=indices_key,
+                        orientations_key=orientations_key,
+                    )
+                )
             domain_records.append(
                 {
                     "domain_id": domain.domain_id,
@@ -66,6 +87,7 @@ def write_run_bundle(study: Study, run: Run, directory: Path) -> tuple[Path, Pat
                     "positions_key": f"{prefix}_positions_m",
                     "faces_key": f"{prefix}_faces",
                     "fields": field_records,
+                    "entity_sets": entity_set_records,
                     "metadata": _jsonable(domain.metadata),
                 }
             )
@@ -127,9 +149,8 @@ def _write_deterministic_npz(
 def read_run_bundle(directory: Path) -> tuple[Study, Run]:
     """Read a bundle created by :func:`write_run_bundle`."""
 
-    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    if manifest["schema_version"] != SCHEMA_VERSION:
-        raise ValueError(f"unsupported schema version: {manifest['schema_version']}")
+    raw_manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    manifest = _migrate_manifest(raw_manifest)
     study_record = manifest["study"]
     study = Study(
         study_id=study_record["study_id"],
@@ -173,6 +194,10 @@ def _frame_from_record(
                     _provenance_from_record(item) for item in field_record["provenance"]
                 ),
             )
+        entity_sets: dict[str, EntitySet] = {}
+        for entity_set_record in domain_record["entity_sets"]:
+            entity_set = _entity_set_from_record(entity_set_record, arrays)
+            entity_sets[entity_set.entity_set_id] = entity_set
         domains.append(
             Domain(
                 domain_id=domain_record["domain_id"],
@@ -181,6 +206,7 @@ def _frame_from_record(
                 positions_m=arrays[domain_record["positions_key"]],
                 faces=arrays[domain_record["faces_key"]],
                 fields=fields,
+                entity_sets=entity_sets,
                 metadata=domain_record["metadata"],
             )
         )
@@ -189,6 +215,89 @@ def _frame_from_record(
         time_s=float(record["time_s"]),
         iteration=int(record["iteration"]),
         domains=tuple(domains),
+    )
+
+
+def _migrate_manifest(record: dict[str, Any]) -> dict[str, Any]:
+    """Return the current in-memory representation of a supported manifest.
+
+    Schema migration is deliberately additive and does not rewrite the source
+    bundle. A v1.0 domain has no named entity sets, so migration supplies an
+    empty collection and preserves all existing scientific records verbatim.
+    """
+
+    version = record.get("schema_version")
+    if version not in _SUPPORTED_SCHEMA_VERSIONS:
+        raise ValueError(f"unsupported schema version: {version}")
+    if version == SCHEMA_VERSION:
+        return record
+    migrated = dict(record)
+    run = dict(migrated["run"])
+    frames: list[dict[str, Any]] = []
+    for source_frame in run["frames"]:
+        frame = dict(source_frame)
+        domains: list[dict[str, Any]] = []
+        for source_domain in frame["domains"]:
+            domain = dict(source_domain)
+            domain["entity_sets"] = []
+            domains.append(domain)
+        frame["domains"] = domains
+        frames.append(frame)
+    run["frames"] = frames
+    migrated["run"] = run
+    migrated["schema_version"] = SCHEMA_VERSION
+    return migrated
+
+
+def _entity_set_to_record(
+    item: EntitySet, *, indices_key: str, orientations_key: str
+) -> dict[str, object]:
+    semantics = item.boundary_semantics
+    semantics_record: dict[str, object] | None = None
+    if semantics is not None:
+        semantics_record = {
+            "semantic_id": semantics.semantic_id,
+            "description": semantics.description,
+            "parameters": _jsonable(semantics.parameters),
+        }
+    return {
+        "entity_set_id": item.entity_set_id,
+        "name": item.name,
+        "owner_domain_id": item.owner_domain_id,
+        "association": item.association.value,
+        "indices_key": indices_key,
+        "orientations_key": orientations_key,
+        "coordinate_frame": item.coordinate_frame,
+        "provenance": [_provenance_to_record(value) for value in item.provenance],
+        "boundary_semantics": semantics_record,
+        "metadata": _jsonable(item.metadata),
+    }
+
+
+def _entity_set_from_record(
+    record: dict[str, Any], arrays: Mapping[str, np.ndarray[Any, Any]]
+) -> EntitySet:
+    semantics_record = record["boundary_semantics"]
+    semantics = None
+    if semantics_record is not None:
+        semantics = BoundarySemantics(
+            semantic_id=semantics_record["semantic_id"],
+            description=semantics_record["description"],
+            parameters=semantics_record["parameters"],
+        )
+    return EntitySet(
+        entity_set_id=record["entity_set_id"],
+        name=record["name"],
+        owner_domain_id=record["owner_domain_id"],
+        association=FieldAssociation(record["association"]),
+        entity_indices=arrays[record["indices_key"]],
+        orientations=arrays[record["orientations_key"]],
+        coordinate_frame=record["coordinate_frame"],
+        provenance=tuple(
+            _provenance_from_record(value) for value in record["provenance"]
+        ),
+        boundary_semantics=semantics,
+        metadata=record["metadata"],
     )
 
 

@@ -6,10 +6,16 @@ first reference problem is the physics of soap films and bubbles.
 > Maximize physical realism first. Allow aesthetics to emerge naturally from
 > accurate simulation.
 
-The repository begins with two small, independently testable kernels:
+The repository begins with independently testable kernels:
 
 - Young--Laplace relations for equilibrium bubbles;
 - coherent, wavelength-dependent Fresnel optics for an air--film--air slab.
+- exact piecewise-linear surface area, oriented volume, centroid, surface
+  energy, and their analytic first derivatives.
+- backend-neutral equality-constrained optimization contracts and an isolated,
+  optional SciPy `trust-constr` adapter verified on synthetic problems.
+- a first predictive closed, fixed-volume capillary equilibrium solver with
+  multiplier-derived pressure and independent sphere-recovery evidence.
 
 These are deliberately not a complete bubble simulator. They establish the
 project's conventions for units, validation, scientific state, and fidelity
@@ -27,8 +33,9 @@ claims before more difficult coupled solvers are introduced.
 
 ## Quick start
 
-Requires Python 3.11, 3.12, or 3.13. Python 3.14 editable-install support is
-intentionally deferred until the build backend emits a non-hidden path file.
+Requires Python 3.11, 3.12, or 3.13. The reproduction script normalizes the
+editable-install path file for patched runtimes that ignore underscore-prefixed
+`.pth` files. Python 3.14 support remains intentionally deferred.
 
 ```bash
 python -m venv .venv
@@ -57,6 +64,13 @@ checkout with one command:
 ./scripts/reproduce_static_sphere.sh
 ```
 
+Run the predictive equilibrium validation study after installing the SciPy
+extra (included in `dev`):
+
+```bash
+./scripts/reproduce_closed_sphere.sh
+```
+
 See the [reference-study tutorial](docs/tutorials/static-spherical-bubble.md)
 for its outputs, classifications, and current limitations.
 
@@ -71,6 +85,11 @@ The long-term design is documented in:
 
 ## Status
 
-Version 0.1.0 establishes the validated static-sphere reference baseline. No
-current output should be interpreted as an experimentally validated complete
-soap-bubble simulation.
+Version 0.1.0 remains the frozen validated static-sphere reference baseline.
+Development toward v0.2.0 has implemented only the additive boundary schema and
+backend-independent geometric kernel, followed by numerical solver
+infrastructure and the closed fixed-volume sphere-recovery milestone. This is a
+verified predictive discrete equilibrium solver, not an experimentally
+validated complete soap-bubble simulation. Boundaries, gravity, mesh evolution,
+fluid transport, rupture, stability analysis, and coupled physics remain
+deferred.

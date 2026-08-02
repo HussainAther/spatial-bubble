@@ -74,6 +74,41 @@ classDiagram
 Domains may be Eulerian, Lagrangian, ALE, or purely referential. That choice is
 metadata; it must not be inferred from file layout.
 
+## Schema v1.1 boundary/entity-set extension
+
+Schema v1.1 is an additive evolution of the frozen v1.0 scientific bundle.
+Triangular surface domains now derive a canonical edge table by sorting each
+edge's endpoint indices and lexicographically sorting the unique pairs. This
+definition is deterministic and gives `EDGE` fields an unambiguous leading-axis
+association without storing duplicate topology.
+
+An immutable named entity set records:
+
+- a namespaced entity-set ID and human-readable name;
+- the owning domain ID and vertex, edge, or face association;
+- indices into the domain's canonical entity table;
+- one orientation value per entity: `-1` reversed, `0` unoriented, or `+1`
+  aligned with the canonical edge direction or stored face winding;
+- a coordinate frame, provenance, optional namespaced boundary semantics, and
+  immutable metadata.
+
+Vertex sets must be unoriented. Indices are unique, nonnegative, and checked
+against the owning domain. Boundary semantics are extensible records rather
+than a closed enum: examples include fixed position, pinned contact line, or a
+prescribed contact angle, each with explicit parameters. Defining a boundary
+does not yet implement its physical enforcement.
+
+The v1.0-to-v1.1 reader migration is in-memory and non-destructive. Because
+v1.0 had no entity-set representation, each migrated domain receives an empty
+entity-set collection; all existing arrays, descriptors, evidence, and study
+metadata are otherwise preserved. Writers emit v1.1 only. Unknown schema
+versions fail explicitly.
+
+VTP adapters place edge-associated arrays in `FieldData`, because VTK
+`PolyData` cell arrays cannot simultaneously carry different edge and polygon
+cardinalities. Their `Association="edge"` metadata and the canonical-edge rule
+preserve interpretation; the JSON+NPZ bundle remains authoritative.
+
 ## Field descriptor contract
 
 Every field carries the following information, whether stored inline or by
@@ -245,3 +280,18 @@ Display colormaps, glyphs, streamlines, iso-surfaces, volume rendering,
 exaggerated displacement, and temporal interpolation are all **VO**. They must
 be stored as view configuration or derived view products, never written back
 into the source field.
+
+## Constrained-solver records
+
+Optimizer iterations are numerical diagnostics, not physical-time frames.
+Milestone 3 stores a callable-free solver specification and result under
+immutable `Run.metadata`. The record includes physical/dimensionless variables,
+scales and units, backend capability and library version, complete deterministic
+settings, termination category plus raw message, independent residuals,
+multipliers with sign convention, evaluation counts, warnings, admissibility,
+provenance, fidelity, validation status, and reduced iteration history.
+
+Backend termination and scientific acceptance are distinct records. Only a
+caller-supplied acceptance policy may create acceptance evidence; no backend
+`success` flag is promoted to a physical result automatically. See the
+[solver protocol](reference/constrained-solver-protocol.md).

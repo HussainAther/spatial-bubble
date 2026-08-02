@@ -41,6 +41,10 @@ def write_vtp(domain: Domain, path: Path) -> Path:
         sampled_field = domain.fields[semantic_id]
         target = {
             FieldAssociation.VERTEX: point_data,
+            # VTK PolyData CellData cannot mix edge and polygon cardinalities.
+            # Preserve edge values losslessly in FieldData; the Association
+            # metadata and Domain's canonical-edge rule retain their meaning.
+            FieldAssociation.EDGE: field_data,
             FieldAssociation.FACE: cell_data,
             FieldAssociation.GLOBAL: field_data,
         }[sampled_field.descriptor.association]

@@ -14,15 +14,18 @@ dependencies = ["numpy>=1.26"]
 
 [project.scripts]
 openphenomena-reference = "openphenomena.reference:main"
+openphenomena-closed-sphere = "openphenomena.equilibrium.reference:main"
 
 [project.entry-points."openphenomena.plugins"]
 soap_bubble_reference = "openphenomena.plugins.soap_bubble:SoapBubbleReferencePlugin"
 
 [project.optional-dependencies]
+scipy = ["scipy>=1.15,<2"]
 dev = [
   "mypy>=1.10",
   "pytest>=8.0",
   "ruff>=0.5",
+  "scipy>=1.15,<2",
 ]
 
 [tool.hatch.build.targets.wheel]
