@@ -1,0 +1,46 @@
+{
+  "description": "Canonical numerical regression values; performance measurements are intentionally excluded.",
+  "refinement_levels": [1, 2, 3, 4],
+  "convergence": [
+    {
+      "vertex_count": 42,
+      "face_count": 80,
+      "characteristic_edge_length_m": 0.005833799767501561,
+      "mean_curvature_l1_error_per_m": 1.956264372180037e-14,
+      "mean_curvature_l2_error_per_m": 2.8410788738610556e-14,
+      "mean_curvature_linf_error_per_m": 7.105427357601002e-14,
+      "pressure_l2_error_pa": 3.5513485923263195e-15,
+      "observed_l2_rate": null
+    },
+    {
+      "vertex_count": 162,
+      "face_count": 320,
+      "characteristic_edge_length_m": 0.002999543167525501,
+      "mean_curvature_l1_error_per_m": 0.005114222687065133,
+      "mean_curvature_l2_error_per_m": 0.007268548765910022,
+      "mean_curvature_linf_error_per_m": 0.011489258342777475,
+      "pressure_l2_error_pa": 0.0008722258519088052,
+      "observed_l2_rate": -39.488080579474
+    },
+    {
+      "vertex_count": 642,
+      "face_count": 1280,
+      "characteristic_edge_length_m": 0.0015104703676954037,
+      "mean_curvature_l1_error_per_m": 0.0010482069267315178,
+      "mean_curvature_l2_error_per_m": 0.0015731984257881157,
+      "mean_curvature_linf_error_per_m": 0.0028826154031804663,
+      "pressure_l2_error_pa": 0.0001887838110942455,
+      "observed_l2_rate": 2.2308442002847313
+    },
+    {
+      "vertex_count": 2562,
+      "face_count": 5120,
+      "characteristic_edge_length_m": 0.0007565843335829988,
+      "mean_curvature_l1_error_per_m": 0.0001577679918830078,
+      "mean_curvature_l2_error_per_m": 0.0002997414079652756,
+      "mean_curvature_linf_error_per_m": 0.0007213104075418642,
+      "pressure_l2_error_pa": 3.5968968955667945e-05,
+      "observed_l2_rate": 2.398085236502652
+    }
+  ]
+}
