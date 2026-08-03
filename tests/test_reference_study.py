@@ -166,9 +166,7 @@ def _assert_regression_scalar_close(
     if abs(expected) < roundoff_threshold:
         np.testing.assert_allclose(actual, expected, rtol=0.0, atol=roundoff_atol)
         return
-    np.testing.assert_allclose(
-        actual, expected, rtol=nonzero_rtol, atol=nonzero_atol
-    )
+    np.testing.assert_allclose(actual, expected, rtol=nonzero_rtol, atol=nonzero_atol)
 
 
 def test_regression_scalar_policy_rejects_meaningful_deviations() -> None:
@@ -200,9 +198,7 @@ def test_canonical_scientific_baseline() -> None:
             assert row.observed_l2_rate is None
         elif expected["mean_curvature_l2_error_per_m"] < 1.0e-12 or (
             index > 0
-            and fixture["convergence"][index - 1][
-                "mean_curvature_l2_error_per_m"
-            ]
+            and fixture["convergence"][index - 1]["mean_curvature_l2_error_per_m"]
             < 1.0e-12
         ):
             assert row.observed_l2_rate is not None
