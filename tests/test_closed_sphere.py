@@ -77,7 +77,8 @@ def test_physical_problem_is_backend_neutral_and_uses_exact_contracts() -> None:
 def test_all_initializations_recover_same_level_one_equilibrium(
     shape: InitialShape,
 ) -> None:
-    case = solve_case(1, shape)
+    config = ClosedSphereconfiig(ellipsoid_axis_factors=(1.12, 0.95, 0.94), random_displacement_fraction_of_edge=0.02, )
+    case = solve_case(1, shape, config=config)
     reference = SphereAnalyticReference.from_config(ClosedSphereConfig())
     assert case.result.backend_converged, (
         case.result.termination.category,
