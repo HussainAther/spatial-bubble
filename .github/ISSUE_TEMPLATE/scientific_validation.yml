@@ -1,0 +1,103 @@
+name: Scientific validation concern
+description: Report a possible scientific, numerical, unit, or evidence defect
+title: "[Validation]: "
+labels:
+  - scientific-validation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for suspected problems with equations, numerical
+        methods, units, convergence, validation, provenance, or fidelity claims.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0-static-sphere or 273cc7e
+    validations:
+      required: true
+
+  - type: input
+    id: quantity
+    attributes:
+      label: Quantity or claim affected
+      placeholder: Mean curvature, pressure multiplier, spectral reflectance
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Concern category
+      options:
+        - Governing equation
+        - Sign convention
+        - Units or dimensions
+        - Discretization
+        - Solver convergence
+        - Validation threshold
+        - Evidence record
+        - Fidelity classification
+        - Reproducibility
+        - Reference comparison
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: regime
+    attributes:
+      label: Model regime and assumptions
+      description: Describe geometry, parameters, boundary conditions, and relevant assumptions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Include units and the supporting derivation or reference.
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result
+      description: Include units and numerical values.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the exact command or minimal script.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence artifacts
+      description: Provide manifest, field, report, run ID, hashes, or relevant output paths.
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Scientific references
+      description: Include relevant papers, equations, datasets, or benchmark sources.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have stated all values with units where applicable.
+          required: true
+        - label: I have distinguished software verification from experimental validation.
+          required: true
+        - label: I have not included private or restricted data.
+          required: true

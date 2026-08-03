@@ -1,0 +1,62 @@
+name: Feature or model proposal
+description: Propose a focused capability, model, solver, or adapter
+title: "[Proposal]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Scientific or user problem
+      description: What concrete problem would this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Describe the smallest useful implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: mathematics
+    attributes:
+      label: Governing model or mathematics
+      description: Include equations, assumptions, and expected quantities where applicable.
+
+  - type: dropdown
+    id: fidelity
+    attributes:
+      label: Expected initial fidelity
+      options:
+        - Physically validated
+        - Engineering approximation
+        - Visualization-only
+        - Speculative future
+        - Not yet determined
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Verification and validation plan
+      description: What exact, numerical, experimental, or cross-implementation references exist?
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architectural impact
+      description: Which plugin capabilities, schemas, fields, or dependencies would be affected?
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: This proposal does not silently weaken existing validation gates.
+          required: true
+        - label: I have identified whether the feature is physics, numerics, export, or visualization.
+          required: true

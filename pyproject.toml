@@ -11,6 +11,53 @@ requires-python = ">=3.11,<3.14"
 license = {text = "Apache-2.0"}
 authors = [{name = "Open Phenomena contributors"}]
 dependencies = ["numpy>=1.26"]
+[project]
+name = "openphenomena"
+version = "0.1.0"
+description = "Validated scientific simulation and spatial visualization of natural phenomena, beginning with soap-film and bubble physics."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { file = "LICENSE" }
+
+authors = [
+  { name = "Syed Hussain Ather" },
+]
+
+maintainers = [
+  { name = "Syed Hussain Ather" },
+]
+
+keywords = [
+  "scientific-computing",
+  "computational-physics",
+  "capillary-surfaces",
+  "soap-bubbles",
+  "thin-film-optics",
+  "scientific-visualization",
+  "spatial-computing",
+  "reproducible-research",
+]
+
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/HussainAther/spatial-bubble"
+Repository = "https://github.com/HussainAther/spatial-bubble"
+Issues = "https://github.com/HussainAther/spatial-bubble/issues"
+Documentation = "https://github.com/HussainAther/spatial-bubble/tree/main/docs"
 
 [project.scripts]
 openphenomena-reference = "openphenomena.reference:main"
@@ -46,3 +93,5 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 packages = ["openphenomena"]
+
+

@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  If you use Open Phenomena or Spatial Bubble in research, education,
+  or software, please cite this repository.
+
+title: "Open Phenomena: Spatial Bubble"
+type: software
+
+authors:
+  - family-names: "Ather"
+    given-names: "Syed Hussain"
+
+abstract: >-
+  An open-source scientific computing, visualization, and spatial-computing
+  framework for physically grounded simulation of natural phenomena,
+  beginning with soap films, thin-film optics, and capillary equilibrium
+  surfaces.
+
+repository-code: "https://github.com/HussainAther/spatial-bubble"
+
+url: "https://github.com/HussainAther/spatial-bubble"
+
+license: "Apache-2.0"
+
+version: "0.1.0"
+
+date-released: "2026-08-02"
+
+keywords:
+  - scientific computing
+  - computational physics
+  - capillary surfaces
+  - soap bubbles
+  - thin-film optics
+  - scientific visualization
+  - spatial computing
+  - reproducible research
