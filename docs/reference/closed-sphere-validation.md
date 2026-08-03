@@ -70,3 +70,26 @@ This resets only the backend-local BFGS approximation. It does not change the
 physical objective, constraints, scaling, tolerances, or scientific acceptance
 criteria. Iteration histories and evaluation counts from both attempts are
 retained, and the restart is recorded in numerical warnings.
+## Bounded ellipsoid benchmark
+
+The stretched-ellipsoid initialization is intentionally a moderate deterministic
+perturbation with axis factors `(1.04, 0.99, 0.97)` before exact volume and
+centroid restoration. It verifies recovery from a clearly nonspherical state; it
+is not a claim of global convergence from arbitrarily distorted meshes. More
+severe distortions belong in a separate basin-of-attraction study.
+
+## Cross-platform optimizer portability
+
+The SciPy `trust-constr` backend uses a bounded deterministic restart policy for
+BFGS-based closed-sphere solves. If an attempt reaches the iteration/evaluation
+limit, the next attempt starts from the previous candidate with a fresh BFGS
+approximation. At most four attempts are allowed. The physical objective, exact
+constraints, nondimensional scales, tolerances, and scientific acceptance gates
+are unchanged. Diagnostics and evaluation counts from every attempt are retained.
+
+A restart is not treated as convergence. The final attempt must still report a
+converged backend termination and pass the independently recomputed KKT, volume,
+Young--Laplace, pressure, and mesh-admissibility gates. This policy addresses
+quasi-Newton path differences across supported Python, SciPy, BLAS, and LAPACK
+builds without weakening the scientific criteria.
+

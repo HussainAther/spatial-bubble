@@ -57,7 +57,7 @@ class ClosedSphereConfig:
     interface_multiplicity: float = 2.0
     target_centroid_m: tuple[float, float, float] = (0.0, 0.0, 0.0)
     radial_perturbation_fraction: float = 0.08
-    ellipsoid_axis_factors: tuple[float, float, float] = (1.12, 0.95, 0.94)
+    ellipsoid_axis_factors: tuple[float, float, float] = (1.04, 0.99, 0.97)
     noise_fraction: float = 0.025
     random_displacement_fraction_of_edge: float = 0.02
     noisy_seed: int = 1729

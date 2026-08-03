@@ -45,6 +45,7 @@ from openphenomena.equilibrium.closed_sphere import (
 from openphenomena.optimization import (
     ConstrainedProblem,
     EvaluationCounts,
+    IterationDiagnostic,
     SolverResult,
     SolverSettings,
     SolverTolerances,
@@ -123,7 +124,7 @@ def solve_case(
         refinement_level, initial_shape, resolved_config
     )
     problem = build_closed_sphere_problem(initial, faces, resolved_config)
-    result = _solve_with_one_deterministic_restart(problem, resolved_settings)
+    result = _solve_with_deterministic_restarts(problem, resolved_settings)
     metrics = evaluate_closed_sphere_solution(initial, faces, result, resolved_config)
     acceptance = assess_closed_sphere(
         result, metrics, resolved_config, resolved_criteria
@@ -153,54 +154,82 @@ def solve_case(
     )
 
 
-def _solve_with_one_deterministic_restart(
-    problem: ConstrainedProblem, settings: SolverSettings
+def _solve_with_deterministic_restarts(
+    problem: ConstrainedProblem,
+    settings: SolverSettings,
+    *,
+    max_attempts: int = 4,
 ) -> SolverResult:
-    """Solve once, then restart exactly once after an iteration limit.
+    """Solve with bounded deterministic BFGS restarts after iteration limits.
 
-    BFGS state can accumulate differently across BLAS, Python, and SciPy builds.
-    Restarting from the first candidate resets only that numerical approximation;
-    it does not alter the physical objective, constraints, scales, tolerances, or
-    scientific acceptance gates. Combined diagnostics retain both attempts.
+    ``trust-constr`` BFGS state can accumulate differently across Python, SciPy,
+    BLAS, and LAPACK builds.  A restart begins from the previous candidate while
+    resetting only the backend's quasi-Newton approximation.  The physical
+    objective, constraints, scales, tolerances, and scientific acceptance gates
+    remain unchanged.  Diagnostics from every attempt are retained.
+
+    The bounded retry policy is numerical infrastructure, not a relaxation of
+    scientific convergence: if no attempt terminates successfully, the final
+    result remains non-converged and the study is rejected.
     """
 
-    adapter = ScipyTrustConstrAdapter()
-    first = adapter.solve(problem, settings)
-    if first.termination.category is not TerminationCategory.ITERATION_LIMIT:
-        return first
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least one")
 
-    restarted_problem = replace(
-        problem,
-        variables=replace(problem.variables, initial_values=first.solution_physical),
-    )
-    second = adapter.solve(restarted_problem, settings)
-    shifted_history = tuple(
-        replace(item, iteration=item.iteration + first.iteration_count)
-        for item in second.iteration_history
-    )
-    first_counts = first.evaluations.as_tuple()
-    second_counts = second.evaluations.as_tuple()
+    adapter = ScipyTrustConstrAdapter()
+    attempts: list[SolverResult] = []
+    current_problem = problem
+    for attempt_index in range(max_attempts):
+        result = adapter.solve(current_problem, settings)
+        attempts.append(result)
+        if result.termination.category is not TerminationCategory.ITERATION_LIMIT:
+            break
+        if attempt_index + 1 < max_attempts:
+            current_problem = replace(
+                problem,
+                variables=replace(
+                    problem.variables, initial_values=result.solution_physical
+                ),
+            )
+
+    if len(attempts) == 1:
+        return attempts[0]
+
+    final = attempts[-1]
+    iteration_offset = 0
+    combined_history: list[IterationDiagnostic] = []
+    combined_warnings: list[str] = []
+    total_counts = [0, 0, 0, 0, 0, 0]
+    for index, attempt in enumerate(attempts, start=1):
+        combined_history.extend(
+            replace(item, iteration=item.iteration + iteration_offset)
+            for item in attempt.iteration_history
+        )
+        iteration_offset += attempt.iteration_count
+        for count_index, value in enumerate(attempt.evaluations.as_tuple()):
+            total_counts[count_index] += value
+        combined_warnings.extend(attempt.numerical_warnings)
+        combined_warnings.append(
+            "deterministic BFGS attempt "
+            f"{index}/{max_attempts}: category={attempt.termination.category.value}, "
+            f"iterations={attempt.iteration_count}, "
+            f"kkt={attempt.lagrangian_kkt_inf_norm:.17g}"
+        )
+
     counts = EvaluationCounts(
-        objective=first_counts[0] + second_counts[0],
-        objective_gradient=first_counts[1] + second_counts[1],
-        objective_hessian=first_counts[2] + second_counts[2],
-        constraints=first_counts[3] + second_counts[3],
-        constraint_jacobians=first_counts[4] + second_counts[4],
-        constraint_hessians=first_counts[5] + second_counts[5],
-    )
-    restart_note = (
-        "deterministic BFGS restart after iteration limit: "
-        f"first_iterations={first.iteration_count}, "
-        f"first_kkt={first.lagrangian_kkt_inf_norm:.17g}"
+        objective=total_counts[0],
+        objective_gradient=total_counts[1],
+        objective_hessian=total_counts[2],
+        constraints=total_counts[3],
+        constraint_jacobians=total_counts[4],
+        constraint_hessians=total_counts[5],
     )
     return replace(
-        second,
-        iteration_count=first.iteration_count + second.iteration_count,
+        final,
+        iteration_count=sum(item.iteration_count for item in attempts),
         evaluations=counts,
-        iteration_history=first.iteration_history + shifted_history,
-        numerical_warnings=first.numerical_warnings
-        + second.numerical_warnings
-        + (restart_note,),
+        iteration_history=tuple(combined_history),
+        numerical_warnings=tuple(dict.fromkeys(combined_warnings)),
     )
 
 
