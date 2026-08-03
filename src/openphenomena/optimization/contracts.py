@@ -508,7 +508,25 @@ class SolverResult:
 
     @property
     def backend_terminated_successfully(self) -> bool:
+        """Return the backend library's raw success flag."""
+
         return self.termination.backend_success
+
+    @property
+    def backend_converged(self) -> bool:
+        """Return whether normalized termination represents convergence.
+
+        Some SciPy releases report a false raw ``success`` flag for an ``xtol``
+        or ``gtol`` termination even when independently recomputed equality
+        residuals satisfy the configured tolerance. The normalized category
+        preserves that distinction while never treating iteration limits or
+        failures as convergence.
+        """
+
+        return self.termination.category in {
+            TerminationCategory.CONVERGED_OPTIMALITY,
+            TerminationCategory.CONVERGED_STEP,
+        }
 
     @property
     def scientifically_acceptable(self) -> bool:

@@ -16,3 +16,12 @@ defines evidence semantics.
 Passing curvature and pressure evidence numerically verifies an **EA**
 discretization against a **PV** analytic reference. It is not experimental
 validation of real soap chemistry or curved-bubble radiance.
+
+## Cross-platform floating-point regression policy
+
+Canonical quantities that are mathematically zero but represented at roughly
+machine precision are compared with an absolute roundoff tolerance. Meaningful
+nonzero quantities retain strict relative and absolute regression tolerances.
+The artificial refinement rate that transitions from a roundoff-level exact
+icosphere result to a nonzero discretization error is required only to be
+finite and negative; it is not treated as a portable scientific quantity.

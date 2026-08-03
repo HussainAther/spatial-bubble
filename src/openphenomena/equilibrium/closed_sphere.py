@@ -470,7 +470,7 @@ def assess_closed_sphere(
 ) -> ClosedSphereAcceptance:
     reference = SphereAnalyticReference.from_config(config)
     checks = {
-        "optimizer_convergence": result.backend_terminated_successfully,
+        "optimizer_convergence": result.backend_converged,
         "kkt_residual": result.lagrangian_kkt_inf_norm <= criteria.kkt_inf_norm,
         "volume_residual": metrics.volume_relative_residual
         <= criteria.volume_relative_residual,
@@ -513,7 +513,7 @@ def sphere_evidence(
         (
             "optimization",
             "backend termination",
-            0.0 if result.backend_terminated_successfully else 1.0,
+            0.0 if result.backend_converged else 1.0,
             0.0,
         ),
         (

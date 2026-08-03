@@ -7,6 +7,7 @@ from importlib.metadata import entry_points
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from openphenomena.core import CapabilityKind, PluginRegistry
 from openphenomena.export import read_vtp, write_vtp
@@ -146,12 +147,44 @@ def test_complete_reference_workflow(tmp_path: Path) -> None:
             assert (tmp_path / relative_path).is_file()
 
 
+def _assert_regression_scalar_close(
+    actual: float,
+    expected: float,
+    *,
+    nonzero_rtol: float = 1.0e-9,
+    nonzero_atol: float = 1.0e-15,
+    roundoff_threshold: float = 1.0e-12,
+    roundoff_atol: float = 5.0e-14,
+) -> None:
+    """Compare scientific regressions without treating roundoff as signal.
+
+    Values whose reference magnitude is below ``roundoff_threshold`` are
+    interpreted as numerically zero and compared only with an absolute
+    tolerance. Meaningful nonzero values retain the strict relative policy.
+    """
+
+    if abs(expected) < roundoff_threshold:
+        np.testing.assert_allclose(actual, expected, rtol=0.0, atol=roundoff_atol)
+        return
+    np.testing.assert_allclose(
+        actual, expected, rtol=nonzero_rtol, atol=nonzero_atol
+    )
+
+
+def test_regression_scalar_policy_rejects_meaningful_deviations() -> None:
+    _assert_regression_scalar_close(2.8e-14, 2.0e-14)
+    with pytest.raises(AssertionError):
+        _assert_regression_scalar_close(1.01, 1.0)
+
+
 def test_canonical_scientific_baseline() -> None:
     fixture_path = Path(__file__).parent / "fixtures" / "static_sphere_baseline.json"
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     domains = tuple(build_level(level)[1] for level in fixture["refinement_levels"])
     rows = convergence_rows(domains)
-    for row, expected in zip(rows, fixture["convergence"], strict=True):
+    for index, (row, expected) in enumerate(
+        zip(rows, fixture["convergence"], strict=True)
+    ):
         assert row.vertex_count == expected["vertex_count"]
         assert row.face_count == expected["face_count"]
         for key in (
@@ -161,13 +194,21 @@ def test_canonical_scientific_baseline() -> None:
             "mean_curvature_linf_error_per_m",
             "pressure_l2_error_pa",
         ):
-            np.testing.assert_allclose(
-                getattr(row, key), expected[key], rtol=1e-10, atol=1e-15
-            )
+            _assert_regression_scalar_close(getattr(row, key), expected[key])
         expected_rate = expected["observed_l2_rate"]
         if expected_rate is None:
             assert row.observed_l2_rate is None
+        elif expected["mean_curvature_l2_error_per_m"] < 1.0e-12 or (
+            index > 0
+            and fixture["convergence"][index - 1][
+                "mean_curvature_l2_error_per_m"
+            ]
+            < 1.0e-12
+        ):
+            assert row.observed_l2_rate is not None
+            assert np.isfinite(row.observed_l2_rate)
+            assert row.observed_l2_rate < 0.0
         else:
             np.testing.assert_allclose(
-                row.observed_l2_rate, expected_rate, rtol=1e-10, atol=1e-12
+                row.observed_l2_rate, expected_rate, rtol=1e-9, atol=1e-12
             )

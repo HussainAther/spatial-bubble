@@ -79,7 +79,13 @@ def test_all_initializations_recover_same_level_one_equilibrium(
 ) -> None:
     case = solve_case(1, shape)
     reference = SphereAnalyticReference.from_config(ClosedSphereConfig())
-    assert case.result.backend_terminated_successfully
+    assert case.result.backend_converged, (
+        case.result.termination.category,
+        case.result.termination.raw_message,
+        case.result.iteration_count,
+        case.result.lagrangian_kkt_inf_norm,
+        case.result.equality_constraint_inf_norm,
+    )
     assert case.acceptance.acceptable, case.acceptance.reasons
     assert case.result.lagrangian_kkt_inf_norm <= 3.1e-5
     assert case.metrics.volume_relative_residual <= 2.0e-9

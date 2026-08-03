@@ -55,3 +55,18 @@ residual `5.82074e-11`, pressure `12.0460404 Pa`, pressure relative error
 `0.00383670`, energy relative error `0.00384435`, curvature L2 error
 `3.10283 m^-1`, relative Young--Laplace L2 residual `0.0326263`, and sampled
 radial Hausdorff estimate `1.22136e-4 m`.
+
+## Cross-platform optimizer normalization
+
+The reference runner distinguishes SciPy's raw `success` flag from Open
+Phenomena's normalized termination category and independently recomputed
+scientific gates. `gtol` and `xtol` terminations are normalized as converged
+when the backend reports success or the independently evaluated equality
+residual satisfies the configured solver tolerance.
+
+For BFGS-based solves that reach the function-evaluation limit, the reference
+runner performs at most one deterministic restart from the first candidate.
+This resets only the backend-local BFGS approximation. It does not change the
+physical objective, constraints, scaling, tolerances, or scientific acceptance
+criteria. Iteration histories and evaluation counts from both attempts are
+retained, and the restart is recorded in numerical warnings.

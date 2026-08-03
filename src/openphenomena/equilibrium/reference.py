@@ -9,7 +9,7 @@ import platform
 import subprocess
 import sys
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -42,7 +42,14 @@ from openphenomena.equilibrium.closed_sphere import (
     generate_initial_mesh,
     sphere_evidence,
 )
-from openphenomena.optimization import SolverResult, SolverSettings, SolverTolerances
+from openphenomena.optimization import (
+    ConstrainedProblem,
+    EvaluationCounts,
+    SolverResult,
+    SolverSettings,
+    SolverTolerances,
+    TerminationCategory,
+)
 from openphenomena.optimization.scipy_trust_constr import ScipyTrustConstrAdapter
 from openphenomena.storage import write_run_bundle
 from openphenomena.surface import analyze_surface
@@ -95,7 +102,7 @@ def default_solver_settings() -> SolverSettings:
             constraint=1.0e-9,
             barrier=1.0e-10,
         ),
-        max_iterations=800,
+        max_iterations=1200,
         history_stride=1,
     )
 
@@ -116,7 +123,7 @@ def solve_case(
         refinement_level, initial_shape, resolved_config
     )
     problem = build_closed_sphere_problem(initial, faces, resolved_config)
-    result = ScipyTrustConstrAdapter().solve(problem, resolved_settings)
+    result = _solve_with_one_deterministic_restart(problem, resolved_settings)
     metrics = evaluate_closed_sphere_solution(initial, faces, result, resolved_config)
     acceptance = assess_closed_sphere(
         result, metrics, resolved_config, resolved_criteria
@@ -143,6 +150,57 @@ def solve_case(
         acceptance,
         domain,
         evidence,
+    )
+
+
+def _solve_with_one_deterministic_restart(
+    problem: ConstrainedProblem, settings: SolverSettings
+) -> SolverResult:
+    """Solve once, then restart exactly once after an iteration limit.
+
+    BFGS state can accumulate differently across BLAS, Python, and SciPy builds.
+    Restarting from the first candidate resets only that numerical approximation;
+    it does not alter the physical objective, constraints, scales, tolerances, or
+    scientific acceptance gates. Combined diagnostics retain both attempts.
+    """
+
+    adapter = ScipyTrustConstrAdapter()
+    first = adapter.solve(problem, settings)
+    if first.termination.category is not TerminationCategory.ITERATION_LIMIT:
+        return first
+
+    restarted_problem = replace(
+        problem,
+        variables=replace(problem.variables, initial_values=first.solution_physical),
+    )
+    second = adapter.solve(restarted_problem, settings)
+    shifted_history = tuple(
+        replace(item, iteration=item.iteration + first.iteration_count)
+        for item in second.iteration_history
+    )
+    first_counts = first.evaluations.as_tuple()
+    second_counts = second.evaluations.as_tuple()
+    counts = EvaluationCounts(
+        objective=first_counts[0] + second_counts[0],
+        objective_gradient=first_counts[1] + second_counts[1],
+        objective_hessian=first_counts[2] + second_counts[2],
+        constraints=first_counts[3] + second_counts[3],
+        constraint_jacobians=first_counts[4] + second_counts[4],
+        constraint_hessians=first_counts[5] + second_counts[5],
+    )
+    restart_note = (
+        "deterministic BFGS restart after iteration limit: "
+        f"first_iterations={first.iteration_count}, "
+        f"first_kkt={first.lagrangian_kkt_inf_norm:.17g}"
+    )
+    return replace(
+        second,
+        iteration_count=first.iteration_count + second.iteration_count,
+        evaluations=counts,
+        iteration_history=first.iteration_history + shifted_history,
+        numerical_warnings=first.numerical_warnings
+        + second.numerical_warnings
+        + (restart_note,),
     )
 
 

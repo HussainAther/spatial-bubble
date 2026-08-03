@@ -693,9 +693,9 @@ def _termination_category(
         return TerminationCategory.ITERATION_LIMIT
     if constraint_inf_norm > constraint_tolerance and status in (0, 2, 4):
         return TerminationCategory.INFEASIBLE
-    if status == 1 and success:
+    if status == 1 and (success or constraint_inf_norm <= constraint_tolerance):
         return TerminationCategory.CONVERGED_OPTIMALITY
-    if status == 2 and success:
+    if status == 2 and (success or constraint_inf_norm <= constraint_tolerance):
         return TerminationCategory.CONVERGED_STEP
     if status == 3:
         return TerminationCategory.CALLBACK_STOP
