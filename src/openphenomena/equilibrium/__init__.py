@@ -24,4 +24,17 @@ __all__ = [
     "build_closed_sphere_problem",
     "evaluate_closed_sphere_solution",
     "generate_initial_mesh",
+    "StabilityResult",
+    "StabilitySettings",
+    "analyze_constrained_stability",
+    "constraint_tangent_basis",
+    "finite_difference_lagrangian_hessian",
 ]
+
+from openphenomena.equilibrium.stability import (
+    StabilityResult,
+    StabilitySettings,
+    analyze_constrained_stability,
+    constraint_tangent_basis,
+    finite_difference_lagrangian_hessian,
+)

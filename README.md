@@ -93,3 +93,19 @@ verified predictive discrete equilibrium solver, not an experimentally
 validated complete soap-bubble simulation. Boundaries, gravity, mesh evolution,
 fluid transport, rupture, stability analysis, and coupled physics remain
 deferred.
+
+## Constrained stability analysis (development)
+
+The equilibrium layer now includes a backend-neutral projected second-variation
+analysis. It finite-differences the analytic Lagrangian gradient, constructs the
+constraint tangent space by SVD, and reports the lowest constrained eigenvalues,
+negative-mode count, near-null modes, and ParaView-compatible displacement
+modes.
+
+```bash
+./scripts/reproduce_stability.sh
+```
+
+This capability is currently **EA, verified**. It is not yet a continuum or
+experimental stability validation, and catenoid-fold validation remains a
+future benchmark. See [the stability method](docs/reference/constrained-stability.md).

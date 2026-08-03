@@ -46,6 +46,7 @@ Documentation = "https://github.com/HussainAther/spatial-bubble/tree/main/docs"
 [project.scripts]
 openphenomena-reference = "openphenomena.reference:main"
 openphenomena-closed-sphere = "openphenomena.equilibrium.reference:main"
+openphenomena-stability = "openphenomena.equilibrium.stability_reference:main"
 
 [project.entry-points."openphenomena.plugins"]
 soap_bubble_reference = "openphenomena.plugins.soap_bubble:SoapBubbleReferencePlugin"
