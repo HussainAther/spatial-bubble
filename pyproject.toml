@@ -5,28 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "openphenomena"
 version = "0.1.0"
-description = "Scientific simulation and visualization of natural phenomena"
-readme = "README.md"
-requires-python = ">=3.11,<3.14"
-license = {text = "Apache-2.0"}
-authors = [{name = "Open Phenomena contributors"}]
-dependencies = ["numpy>=1.26"]
-[project]
-name = "openphenomena"
-version = "0.1.0"
 description = "Validated scientific simulation and spatial visualization of natural phenomena, beginning with soap-film and bubble physics."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-license = { file = "LICENSE" }
-
-authors = [
-  { name = "Syed Hussain Ather" },
-]
-
-maintainers = [
-  { name = "Syed Hussain Ather" },
-]
-
+license = {file = "LICENSE"}
+authors = [{name = "Syed Hussain Ather"}]
+maintainers = [{name = "Syed Hussain Ather"}]
 keywords = [
   "scientific-computing",
   "computational-physics",
@@ -37,7 +21,6 @@ keywords = [
   "spatial-computing",
   "reproducible-research",
 ]
-
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
@@ -52,6 +35,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Physics",
   "Typing :: Typed",
 ]
+dependencies = ["numpy>=1.26"]
 
 [project.urls]
 Homepage = "https://github.com/HussainAther/spatial-bubble"
@@ -93,5 +77,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 packages = ["openphenomena"]
-
-
