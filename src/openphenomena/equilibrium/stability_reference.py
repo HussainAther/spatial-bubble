@@ -137,9 +137,7 @@ def _json_default(value: object) -> object:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--output", type=Path, default=Path("outputs/stability-sphere")
-    )
+    parser.add_argument("--output", type=Path, default=Path("outputs/stability-sphere"))
     args = parser.parse_args()
     result = run_stability_study(args.output)
     print(

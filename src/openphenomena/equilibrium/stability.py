@@ -84,9 +84,7 @@ def analyze_constrained_stability(
     x = np.asarray(result.solution_dimensionless, dtype=np.float64)
     multipliers = _multipliers_by_constraint(problem, result)
     jacobian = stacked_constraint_jacobian_dimensionless(problem, x)
-    tangent, rank = constraint_tangent_basis(
-        jacobian, resolved.rank_relative_tolerance
-    )
+    tangent, rank = constraint_tangent_basis(jacobian, resolved.rank_relative_tolerance)
     hessian = finite_difference_lagrangian_hessian(
         problem, x, multipliers, resolved.relative_step
     )

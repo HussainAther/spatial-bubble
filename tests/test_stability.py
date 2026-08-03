@@ -41,9 +41,7 @@ def test_closed_sphere_projected_second_variation_is_reproducible() -> None:
     assert first.null_mode_count >= 0
     assert first.modes_physical.shape == (8, initial.size)
     rms = np.sqrt(np.mean(first.modes_physical**2, axis=1))
-    np.testing.assert_allclose(
-        rms, config.scales.length_m, rtol=1.0e-12, atol=1.0e-12
-    )
+    np.testing.assert_allclose(rms, config.scales.length_m, rtol=1.0e-12, atol=1.0e-12)
 
 
 def test_low_spectrum_is_insensitive_to_reasonable_difference_step() -> None:
